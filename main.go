@@ -12,12 +12,18 @@ var ErrTooManyRequests = errors.New("Too Many Requests")
 
 var bucketContainer = newTokenBucketContainer()
 
-func Wrap(h http.Handler) *RateLimiterMiddleware {
-	return &RateLimiterMiddleware{handler: h}
+func Wrap(h http.Handler, bucketSize int, delay time.Duration) *RateLimiterMiddleware {
+	return &RateLimiterMiddleware{
+		handler:    h,
+		bucketSize: bucketSize,
+		delay:      delay,
+	}
 }
 
 type RateLimiterMiddleware struct {
-	handler http.Handler
+	handler    http.Handler
+	bucketSize int
+	delay      time.Duration
 }
 
 func (rl *RateLimiterMiddleware) fail(w http.ResponseWriter) {
@@ -30,7 +36,7 @@ func (rl *RateLimiterMiddleware) fail(w http.ResponseWriter) {
 
 func (rl *RateLimiterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !bucketContainer.HasBucket(r.RemoteAddr) {
-		bucketContainer.NewTokenBucket(r.RemoteAddr, 5, time.Second*15)
+		bucketContainer.NewTokenBucket(r.RemoteAddr, rl.bucketSize, rl.delay)
 	}
 
 	if err := bucketContainer.Consume(r.RemoteAddr); err != nil {
