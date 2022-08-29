@@ -28,9 +28,9 @@ type RateLimiterMiddleware struct {
 }
 
 func (rl *RateLimiterMiddleware) fail(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusTooManyRequests)
+	w.Header().Add("Content-Type", "application/json")
 
-	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusTooManyRequests)
 
 	r, _ := json.Marshal(map[string]string{
 		"message": ErrTooManyRequests.Error(),
