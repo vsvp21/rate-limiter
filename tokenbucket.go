@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -28,7 +29,12 @@ type RateLimiterMiddleware struct {
 
 func (rl *RateLimiterMiddleware) fail(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusTooManyRequests)
-	_, err := w.Write([]byte(ErrTooManyRequests.Error()))
+
+	r, _ := json.Marshal(map[string]string{
+		"message": ErrTooManyRequests.Error(),
+	})
+
+	_, err := w.Write(r)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +78,7 @@ func (c *tokenBucketContainer) deleteBucket(ip string) {
 
 func (c *tokenBucketContainer) HasBucket(ip string) bool {
 	c.mux.RLock()
-	c.mux.RUnlock()
+	defer c.mux.RUnlock()
 
 	_, ok := c.buckets[ip]
 
@@ -115,12 +121,11 @@ func (c *tokenBucketContainer) NewTokenBucket(ip string, bucketSize int, destroy
 }
 
 type tokenBucket struct {
-	name          string
-	bucketSize    int
-	bucket        []struct{}
-	destroyDelay  time.Duration
-	mux           sync.Mutex
-	destroyIpChan chan string
+	name         string
+	bucketSize   int
+	bucket       []struct{}
+	destroyDelay time.Duration
+	mux          sync.Mutex
 }
 
 func (t *tokenBucket) consume() error {
