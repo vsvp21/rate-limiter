@@ -1,11 +1,10 @@
-package examples
+package main
 
 import (
 	"github.com/gin-gonic/gin"
 	ratelimit "github.com/vsvp21/rate-limiter"
 	"log"
 	"net/http"
-	"time"
 )
 
 func main() {
@@ -16,7 +15,7 @@ func main() {
 		})
 	})
 
-	rateLimited := ratelimit.Wrap(r, 5, time.Second*5)
+	rateLimited := ratelimit.Wrap(r)
 
 	err := http.ListenAndServe(":8081", rateLimited)
 	if err != nil {
